@@ -34,6 +34,8 @@ def retry(times):
                     count += 1
                 else:
                     return result
+            if count > times:
+                logging.error('retry more than %d times' % times)
         return __retry
     return _retry
 
