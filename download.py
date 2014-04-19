@@ -6,6 +6,7 @@ import urllib
 import re
 import os
 import logging
+import argparse
 from gevent.queue import Queue, Empty
 
 index_queue = Queue()
@@ -83,13 +84,33 @@ def download(thread_id, base_dir='~'):
 
 
 if __name__ == '__main__':
-    start = 1
-    stop = 3
-    thread_count = 10
+    parser = argparse.ArgumentParser(
+        prog='download_eslpod',
+        description='download podcasts from eslpod.com',
+        add_help=True)
+    parser.add_argument(
+        '-s', '--start', type=int, default=1,
+        help='start index page, start from 1, default 1')
+    parser.add_argument(
+        '-e', '--end', type=int, default=2,
+        help='end index page, default 2')
+    parser.add_argument(
+        '-tc', '--threads_count', type=int, default=10,
+        help='download thread count, default 10')
+    parser.add_argument(
+        '-b', '--base_dir', type=str, default='eslpods',
+        help='base dir to dowload, default eslpods dir within current dir')
+    args = parser.parse_args()
+
+    start = args.start
+    end = args.end
+    thread_count = args.threads_count
+    base_dir = os.path.abspath(args.base_dir)
+    if not os.path.isdir(base_dir):
+        os.makedirs(base_dir)
     threads = []
-    base_dir = '/home/zhoufeng/download_eslpod'
     logging.basicConfig(level=logging.DEBUG)
-    for page in xrange(start - 1, stop):
+    for page in xrange(start - 1, end):
         params = {'cat_id': -59456, 'low_rec': page * 20}
         index_queue.put(params)
     for thread in xrange(thread_count):
