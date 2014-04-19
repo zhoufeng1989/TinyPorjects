@@ -1,7 +1,9 @@
 download_eslpods
 ================
 
-python download.py -h
+download eslpod.com podcasts from [index pages](http://www.eslpod.com/website/show_all.php) based on [gevent](http://www.gevent.org/).
+
+execute ```python download.py -h```
 
 ```
 optional arguments:
