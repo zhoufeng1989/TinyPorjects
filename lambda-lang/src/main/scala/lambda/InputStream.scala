@@ -2,22 +2,24 @@ package lambda
 
 import scala.collection.mutable
 import scala.io.Source
+import scala.util.{Failure, Try, Success}
 
 /**
  * Created by zhoufeng on 16/3/21.
  */
 class InputStream(val input: Source) {
+  import InputStream.eof
   var lineNo = 1
   var column = 0
   val queue = mutable.Queue[Char]()
 
-  def next(): Char = {
-    val nextChar = if(queue.isEmpty) input.next() else queue.dequeue()
+  def next(): Try[Char] = {
+    val nextChar = if(queue.isEmpty) Try(input.next()) else Success(queue.dequeue())
     nextChar match {
-      case "\n" => {lineNo += 1; column = 0}
-      case _ => {column += 1}
+      case Success("\n") => {lineNo += 1; column = 0; Success('\n')}
+      case Success(char) => {column += 1; Success(char)}
+      case failure: Failure => failure
     }
-    nextChar
   }
 
   def peek(): Char = {
@@ -26,8 +28,12 @@ class InputStream(val input: Source) {
     nextChar
   }
 
-  def eof: Boolean = input.isEmpty
+  def isEof: Boolean = input.isEmpty
 
   def croak(message: String) = throw new Exception(s"${message} (${lineNo}: ${column})")
 
+}
+
+object InputStream {
+  case object eof
 }

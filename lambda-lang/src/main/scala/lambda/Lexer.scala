@@ -7,31 +7,45 @@ class Lexer(val stream: InputStream) {
   private val keywords = List("if", "then", "else", "lambda", "λ", "true", "false")
   private val punctuation = List(',', ';', '(', ')', '{', '}', '[', ']')
   private val whitespaces = List(' ', '\n', '\t')
+  private val operatorChars = List('+', '-', '*', '/', '%', '=', '&', '|', '<', '>', '!')
   private var current:String = _
 
   private def isWhitespace(char: Char): Boolean = whitespaces contains char
   private def isNumber(char: Char): Boolean = ('0' <= char) && (char <= '9')
+  private def isOperatorChar(char: Char): Boolean = operatorChars contains char
 
-  private def skip_comment():Unit = stream.next match {
+  private def skipComment():Unit = stream.next match {
     case "\n" => _
-    case _ => skip_comment()
+    case _ => skipComment()
   }
 
-  private def read_while(predicate: Char => Boolean): String = stream.peek() match {
-    case char if predicate(char) => {stream.next(); char::readWhile(predicate)}
+  private def readWhile(predicate: Char => Boolean): String = stream.peek() match {
+    case eof
+    case char if predicate(char) => {stream.next(); char + readWhile(predicate)}
   }
 
-  private def read_number(): Token = {
+  private def readNumber(): Token = {
     stream.peek() match {
       case char if isNumber(char) =>
     }
   }
 
+  private def readString(): Token = {
+    stream.next()
+    val string = readWhile(_ != '"')
+    if (stream.next() != '"') stream.croak("string parse error")
+    StrToken(string)
+  }
 
-  def read_next(): Token = stream.peek match {
-    case char if isWhitespace(char) => {stream.next(); read_next()}
-    case '#' => {skip_comment(); read_next()}
-    case char if isNumber(char) => read_number()
+
+  def readNext(): Token = stream.peek match {
+    case char if isWhitespace(char) => {stream.next(); readNext()}
+    case '#' => {skipComment(); readNext()}
+    case '"' => readString()
+    case char if isNumber(char) => readNumber()
+    case char if isIdStart(char) => readIdent()
+    case char if isPunc(char) =>
+    case char if isOperatorChar(char) =>
   }
 }
 abstract class Token {
