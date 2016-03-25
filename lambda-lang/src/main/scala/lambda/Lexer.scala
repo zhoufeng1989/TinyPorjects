@@ -3,49 +3,63 @@ package lambda
 /**
  * Created by zhoufeng on 16/3/21.
  */
-class Lexer(val stream: InputStream) {
+class Lexer(val input: InputStream) {
   private val keywords = List("if", "then", "else", "lambda", "λ", "true", "false")
-  private val punctuation = List(',', ';', '(', ')', '{', '}', '[', ']')
+  private val punctuations = List(',', ';', '(', ')', '{', '}', '[', ']')
   private val whitespaces = List(' ', '\n', '\t')
   private val operatorChars = List('+', '-', '*', '/', '%', '=', '&', '|', '<', '>', '!')
   private var current:String = _
 
-  private def isWhitespace(char: Char): Boolean = whitespaces contains char
-  private def isNumber(char: Char): Boolean = ('0' <= char) && (char <= '9')
   private def isOperatorChar(char: Char): Boolean = operatorChars contains char
+  private def isIdStart(char: Char): Boolean = if (char.isLetter || char == 'λ' || char == '_') true else false
 
-  private def skipComment():Unit = stream.next match {
-    case "\n" => _
-    case _ => skipComment()
+  private def readWhile(predicate: Char => Boolean): String = input.peek() match {
+    case Some(char) if predicate(char) => {input.next(); char + readWhile(predicate)}
+    case _ => ""
   }
 
-  private def readWhile(predicate: Char => Boolean): String = stream.peek() match {
-    case eof
-    case char if predicate(char) => {stream.next(); char + readWhile(predicate)}
+  private def skipComment():Unit = {
+    readWhile(_ != '\n')
+    input.next()
   }
 
   private def readNumber(): Token = {
-    stream.peek() match {
-      case char if isNumber(char) =>
+    var dot = false
+    NumToken(readWhile(continueReadNumber).toDouble)
+    def continueReadNumber(char: Char) = char match {
+      case char if char.isDigit => true
+      case '.' => if (dot) false else { dot = true; true}
+      case _ => false
     }
   }
 
   private def readString(): Token = {
-    stream.next()
+    input.next()
     val string = readWhile(_ != '"')
-    if (stream.next() != '"') stream.croak("string parse error")
+    if (input.next() != Some('"')) input.croak("string parse error")
     StrToken(string)
   }
 
+  private def readIdent(): Token = {
+    val id = readWhile(char => isIdStart(char) || char.isDigit || "?!-<>=".contains(char))
+    if(keywords contains id) KeywordToken(id) else VarToken(id)
+  }
 
-  def readNext(): Token = stream.peek match {
-    case char if isWhitespace(char) => {stream.next(); readNext()}
-    case '#' => {skipComment(); readNext()}
-    case '"' => readString()
-    case char if isNumber(char) => readNumber()
-    case char if isIdStart(char) => readIdent()
-    case char if isPunc(char) =>
-    case char if isOperatorChar(char) =>
+  private def readOperator(): Token = {
+    val op = readWhile(isOperatorChar(_))
+    OpToken(op)
+  }
+
+  def readNext(): Token = input.peek match {
+    case None => EofToken
+    case Some(char) if char.isSpaceChar => {input.next(); readNext()}
+    case Some('#') => {skipComment(); readNext()}
+    case Some('"') => readString()
+    case Some(char) if char.isDigit => readNumber()
+    case Some(char) if isIdStart(char) => readIdent()
+    case Some(char) if punctuations.contains(char) => {input.next(); PuncToken(char.toString)}
+    case Some(char) if isOperatorChar(char) => readOperator()
+    case _ => input.croak("parse error")
   }
 }
 abstract class Token {
@@ -53,8 +67,7 @@ abstract class Token {
 
 }
 
-
-case class NumToken(value: Numeric) extends Token
+case class NumToken(value: Double) extends Token
 
 
 case class StrToken(value: String) extends Token
