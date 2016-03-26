@@ -6,9 +6,8 @@ package lambda
 class Lexer(val input: InputStream) {
   private val keywords = List("if", "then", "else", "lambda", "λ", "true", "false")
   private val punctuations = List(',', ';', '(', ')', '{', '}', '[', ']')
-  private val whitespaces = List(' ', '\n', '\t')
   private val operatorChars = List('+', '-', '*', '/', '%', '=', '&', '|', '<', '>', '!')
-  private var current:String = _
+  private var current: Option[Token] = None
 
   private def isOperatorChar(char: Char): Boolean = operatorChars contains char
   private def isIdStart(char: Char): Boolean = if (char.isLetter || char == 'λ' || char == '_') true else false
@@ -50,7 +49,7 @@ class Lexer(val input: InputStream) {
     OpToken(op)
   }
 
-  def readNext(): Token = input.peek match {
+  private def readNext(): Token = input.peek match {
     case None => EofToken
     case Some(char) if char.isSpaceChar => {input.next(); readNext()}
     case Some('#') => {skipComment(); readNext()}
@@ -61,7 +60,24 @@ class Lexer(val input: InputStream) {
     case Some(char) if isOperatorChar(char) => readOperator()
     case _ => input.croak("parse error")
   }
+
+  def next(): Token = {
+    if (current.isDefined) {
+      val token = current.get
+      current = None
+      token
+    } else readNext
+  }
+
+  def peek(): Token = {
+    if (current.isEmpty) {
+      current = Some(readNext)
+    }
+    current.get
+  }
 }
+
+
 abstract class Token {
   val value: Any
 
