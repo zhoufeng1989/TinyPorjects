@@ -19,9 +19,9 @@ class Parser(val lexer: Lexer) {
 
   def parseExpression():ASTree = maybeCall(maybeBinary(parseAtom(), 0))
 
-  def maybeCall(ast: => ASTree): ASTree
+  def maybeCall(ast: => ASTree): ASTree = ???
 
-  def maybeBinary(left: ASTree, precedence: Int): ASTree
+  def maybeBinary(left: ASTree, precedence: Int): ASTree = ???
 
   def parseAtom(): ASTree = lexer.peek match {
     case PuncToken("(") => {
@@ -59,7 +59,36 @@ class Parser(val lexer: Lexer) {
     case KeywordToken("false") => Bool(false)
   }
 
-  def parseProgram(): ASTree
+  def parseLambda(): Lambda = Lambda(
+    delimited(PuncToken("("), PuncToken(")"), PuncToken(","), parseVar).asInstanceOf[List[Var]],
+    parseExpression()
+  )
+
+  def delimited(start: PuncToken, end: PuncToken, delimiter: PuncToken, ast: => ASTree): List[ASTree] = {
+    skipToken(start)
+
+    def _delimited(first: Boolean): List[Var] = lexer.peek match {
+      case token if token == end => List[Var]()
+      case token if token == delimiter => {
+        if (first)
+          throw new ParseException(s"unexpected token ${token}")
+        else{
+          skipToken(delimiter);
+          _delimited(false)
+        }
+      }
+      case _ => parseVar() :: _delimited(false)
+    }
+
+    _delimited(true)
+  }
+
+  def parseVar(): Var = lexer.next match {
+    case VarToken(varname) => Var(varname)
+    case _ => throw new ParseException("expecting variable name")
+  }
+
+  def parseProgram(): ASTree = ???
 
   def skipToken(token: Token):Unit = lexer.peek match {
     case t if t == token => {lexer.next()}
