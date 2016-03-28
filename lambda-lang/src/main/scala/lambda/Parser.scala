@@ -1,9 +1,16 @@
 package lambda
 
+import scala.Option
+
 /**
  * Created by zhoufeng on 16/3/26.
  */
 class Parser(val lexer: Lexer) {
+
+  private val precedences = Map(
+    OpToken("=") -> 1, OpToken("||") -> 2, OpToken("&&") -> 3, OpToken("<") -> 7, OpToken(">") -> 7,
+    OpToken("<=") -> 7, OpToken(">=") -> 7, OpToken("==") -> 7, OpToken("!=") -> 7, OpToken("+") -> 10,
+    OpToken("-") -> 10, OpToken("*") -> 20, OpToken("/") -> 20, OpToken("%") -> 20)
 
   def parse(): List[ASTree] = lexer.peek match {
     case EofToken => List[ASTree]()
@@ -19,7 +26,15 @@ class Parser(val lexer: Lexer) {
 
   def parseExpression():ASTree = maybeCall(maybeBinary(parseAtom(), 0))
 
-  def maybeCall(ast: => ASTree): ASTree = ???
+  def maybeCall(ast: => ASTree): ASTree = {
+    val expr = ast
+    lexer.peek match {
+      case PuncToken("(") => parseCall(expr)
+      case _ => expr
+    }
+  }
+
+  def parseCall(func: ASTree): ASTree = Call(func, delimited(PuncToken("("), PuncToken(")"), PuncToken(","), parseExpression()))
 
   def maybeBinary(left: ASTree, precedence: Int): ASTree = ???
 
@@ -88,7 +103,7 @@ class Parser(val lexer: Lexer) {
     case _ => throw new ParseException("expecting variable name")
   }
 
-  def parseProgram(): ASTree = ???
+  def parseProgram(): ASTree = Program(delimited(PuncToken("{"), PuncToken("}"), PuncToken(";"), parseExpression()))
 
   def skipToken(token: Token):Unit = lexer.peek match {
     case t if t == token => {lexer.next()}
