@@ -1,7 +1,5 @@
 package lambda
 
-import scala.Option
-
 /**
  * Created by zhoufeng on 16/3/26.
  */
@@ -36,7 +34,25 @@ class Parser(val lexer: Lexer) {
 
   def parseCall(func: ASTree): ASTree = Call(func, delimited(PuncToken("("), PuncToken(")"), PuncToken(","), parseExpression()))
 
-  def maybeBinary(left: ASTree, precedence: Int): ASTree = ???
+  def maybeBinary(left: ASTree, precedence: Int): ASTree = lexer.peek match {
+    case token: OpToken => {
+      lexer.next()
+      val right = parseAtom()
+      lexer.peek match {
+        case nextToken: OpToken => {
+          val nextPrecedence = precedences(token)
+          if (nextPrecedence > precedence) {
+            Binary(Operator(token.value), left, maybeBinary(right, nextPrecedence))
+          }
+          else {
+            maybeBinary(Binary(Operator(token.value), left, right), nextPrecedence)
+          }
+        }
+        case _ => Binary(Operator(token.value), left, right)
+      }
+    }
+    case _ => left
+  }
 
   def parseAtom(): ASTree = lexer.peek match {
     case PuncToken("(") => {
