@@ -1,5 +1,7 @@
 package lambda
 
+import scala.util.Either
+
 /**
  * Created by zhoufeng on 16/3/21.
  */
@@ -22,29 +24,29 @@ class Lexer(val input: InputStream) {
     input.next()
   }
 
-  private def readNumber(): Token = {
+  private def readNumber(): NumToken = {
     var dot = false
-    NumToken(readWhile(continueReadNumber).toDouble)
     def continueReadNumber(char: Char) = char match {
       case char if char.isDigit => true
       case '.' => if (dot) false else { dot = true; true}
       case _ => false
     }
+    NumToken(readWhile(continueReadNumber).toDouble)
   }
 
-  private def readString(): Token = {
+  private def readString(): StrToken = {
     input.next()
     val string = readWhile(_ != '"')
     if (input.next() != Some('"')) input.croak("string parse error")
     StrToken(string)
   }
 
-  private def readIdent(): Token = {
+  private def readIdent(): Either[KeywordToken, VarToken] = {
     val id = readWhile(char => isIdStart(char) || char.isDigit || "?!-<>=".contains(char))
-    if(keywords contains id) KeywordToken(id) else VarToken(id)
+    if(keywords contains id) Left(KeywordToken(id)) else Right(VarToken(id))
   }
 
-  private def readOperator(): Token = {
+  private def readOperator(): OpToken = {
     val op = readWhile(isOperatorChar(_))
     OpToken(op)
   }
@@ -55,7 +57,7 @@ class Lexer(val input: InputStream) {
     case Some('#') => {skipComment(); readNext()}
     case Some('"') => readString()
     case Some(char) if char.isDigit => readNumber()
-    case Some(char) if isIdStart(char) => readIdent()
+    case Some(char) if isIdStart(char) => readIdent() match {case Left(token) => token; case Right(token) => token}
     case Some(char) if punctuations.contains(char) => {input.next(); PuncToken(char.toString)}
     case Some(char) if isOperatorChar(char) => readOperator()
     case _ => input.croak("parse error")
@@ -75,6 +77,8 @@ class Lexer(val input: InputStream) {
     }
     current.get
   }
+
+  def croak() = input.croak("parse error")
 }
 
 

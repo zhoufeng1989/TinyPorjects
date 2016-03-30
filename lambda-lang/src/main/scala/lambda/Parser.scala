@@ -15,7 +15,7 @@ class Parser(val lexer: Lexer) {
     case _ => {
       val expression = parseExpression()
       lexer.peek match {
-        case EofToken => _
+        case EofToken => ()
         case _ => skipToken(PuncToken(";"))
       }
       expression :: parse()
@@ -68,7 +68,7 @@ class Parser(val lexer: Lexer) {
     case NumToken(value) => {lexer.next(); Number(value)}
     case VarToken(value) => {lexer.next(); Var(value)}
     case StrToken(value) => {lexer.next(); Str(value)}
-    case token => throw new ParseException(s"unexpected token ${token}")
+    case token => lexer.croak()
   }
 
   def parseIf(): If = {
@@ -98,8 +98,8 @@ class Parser(val lexer: Lexer) {
   def delimited(start: PuncToken, end: PuncToken, delimiter: PuncToken, ast: => ASTree): List[ASTree] = {
     skipToken(start)
 
-    def _delimited(first: Boolean): List[Var] = lexer.peek match {
-      case token if token == end => List[Var]()
+    def _delimited(first: Boolean): List[ASTree] = lexer.peek match {
+      case token if token == end => {lexer.next(); List[Var]()}
       case token if token == delimiter => {
         if (first)
           throw new ParseException(s"unexpected token ${token}")
@@ -108,7 +108,7 @@ class Parser(val lexer: Lexer) {
           _delimited(false)
         }
       }
-      case _ => parseVar() :: _delimited(false)
+      case _ => ast :: _delimited(false)
     }
 
     _delimited(true)
@@ -119,7 +119,7 @@ class Parser(val lexer: Lexer) {
     case _ => throw new ParseException("expecting variable name")
   }
 
-  def parseProgram(): ASTree = Program(delimited(PuncToken("{"), PuncToken("}"), PuncToken(";"), parseExpression()))
+  def parseProgram(): Program = Program(delimited(PuncToken("{"), PuncToken("}"), PuncToken(";"), parseExpression()))
 
   def skipToken(token: Token):Unit = lexer.peek match {
     case t if t == token => {lexer.next()}

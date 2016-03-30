@@ -17,9 +17,9 @@ class InputStream(val input: Source) {
     } else Some(queue.dequeue())
 
     nextChar match {
-      case Some("\n") => {lineNo += 1; column = 0}
+      case Some('\n') => {lineNo += 1; column = 0}
       case Some(char) => column += 1
-      case _ => _
+      case _ => ()
     }
     nextChar
   }
