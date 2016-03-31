@@ -53,14 +53,14 @@ class Lexer(val input: InputStream) {
 
   private def readNext(): Token = input.peek match {
     case None => EofToken
-    case Some(char) if char.isSpaceChar => {input.next(); readNext()}
+    case Some(char) if char.isSpaceChar || char.isControl => {input.next(); readNext()}
     case Some('#') => {skipComment(); readNext()}
     case Some('"') => readString()
     case Some(char) if char.isDigit => readNumber()
     case Some(char) if isIdStart(char) => readIdent() match {case Left(token) => token; case Right(token) => token}
     case Some(char) if punctuations.contains(char) => {input.next(); PuncToken(char.toString)}
     case Some(char) if isOperatorChar(char) => readOperator()
-    case _ => input.croak("parse error")
+    case token => input.croak(s"parse error ${token}")
   }
 
   def next(): Token = {
