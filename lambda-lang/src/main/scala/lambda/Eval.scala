@@ -7,8 +7,13 @@ import scala.util.{Failure, Success, Try}
 /**
  * Created by zhoufeng on 16/3/31.
  */
-class Eval {
-
+object Eval {
+  def evaluate(expr: ASTree, env: Environment): Any = expr match {
+    case Number(num) => num
+    case Str(string) => string
+    case Bool(b) => b
+    case Var(v) => env.get(v)
+  }
 }
 
 abstract class Environment {
