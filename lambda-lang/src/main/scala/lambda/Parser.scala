@@ -34,6 +34,11 @@ class Parser(val lexer: Lexer) {
 
   def parseCall(func: ASTree): ASTree = Call(func, delimited(PuncToken("("), PuncToken(")"), PuncToken(","), parseExpression()))
 
+  def maybeAssignOrBinary(op: OpToken, left: ASTree, right: ASTree):ASTree = op match {
+    case OpToken("=") => Assign(left, right)
+    case _ => Binary(op, left, right)
+  }
+
   def maybeBinary(left: ASTree, precedence: Int): ASTree = lexer.peek match {
     case token: OpToken => {
       lexer.next()
@@ -42,13 +47,13 @@ class Parser(val lexer: Lexer) {
         case nextToken: OpToken => {
           val nextPrecedence = precedences(token)
           if (nextPrecedence > precedence) {
-            Binary(Operator(token.value), left, maybeBinary(right, nextPrecedence))
+            maybeAssignOrBinary(OpToken(token.value), left, maybeBinary(right, nextPrecedence))
           }
           else {
-            maybeBinary(Binary(Operator(token.value), left, right), nextPrecedence)
+            maybeBinary(maybeAssignOrBinary(OpToken(token.value), left, right), nextPrecedence)
           }
         }
-        case _ => Binary(Operator(token.value), left, right)
+        case _ => maybeAssignOrBinary(OpToken(token.value), left, right)
       }
     }
     case _ => left
