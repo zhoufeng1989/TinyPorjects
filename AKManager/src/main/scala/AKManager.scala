@@ -1,6 +1,9 @@
 /**
  * Created by zhoufeng on 16/4/4.
  */
+import org.json4s._
+import org.json4s.jackson.JsonMethods._
+import scala.io.Source
 
 case class Record(alias: String, id: String, secretKey: String, region: String="us-east-1") {
   override def toString =
@@ -13,12 +16,18 @@ class AKManager(val list: List[Record]) {
 }
 
 class Config(config_file: String) {
-  def loadFromFile(): List[Record] = ???
-  def saveToFile() = ???
+  def loadFromFile(): List[Record] = {
+    val content = Source.fromFile(config_file).mkString("")
+    println(parse(content).map(_.asInstanceOf[JObject]))
+    List[Record]()
+  }
+  def saveToFile(records: List[Record]) = ???
   def records = loadFromFile()
 }
 
 object AKManager extends App {
-  val config = new Config(System.getProperty("os.home") + "/" + ".akm.cfg")
+  val config = new Config(System.getProperty("user.home") + "/" + ".akm.cfg")
+  config.loadFromFile()
   val akManager = new AKManager(config.records)
+
 }
