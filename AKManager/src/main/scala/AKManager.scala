@@ -1,8 +1,12 @@
 /**
  * Created by zhoufeng on 16/4/4.
  */
+
+import java.io.PrintWriter
+
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
+import org.json4s.jackson.Serialization
 import scala.io.Source
 import scala.io.StdIn._
 
@@ -38,14 +42,20 @@ class Config(config_file: String) {
       case (key: String, value:JValue) => Record(key, compact(render(value \\ "aws_access_key_id")), compact(render(value \\ "aws_secret_access_key")))
     }
   }
-  def saveToFile(records: List[Record]) = records.map(
-    record => (
-      record.alias -> Map(
-        "aws_access_key_id" -> record.aws_access_key_id,
-        "aws_secret_access_key" -> record.aws_secret_access_key,
-        "region" -> record.region)
-    )
-  ).toMap
+  def saveToFile(records: List[Record]) = {
+    val maps = records.map(
+      record => (
+        record.alias -> Map(
+          "aws_access_key_id" -> record.aws_access_key_id,
+          "aws_secret_access_key" -> record.aws_secret_access_key,
+          "region" -> record.region)
+        )
+    ).toMap
+    new PrintWriter(System.getProperty("user.home") + "/" + ".akm.cfg") {
+      write(Serialization.write(maps)(DefaultFormats))
+      close
+    }
+  }
   def records = loadFromFile()
 }
 
