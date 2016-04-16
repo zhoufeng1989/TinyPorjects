@@ -66,11 +66,17 @@ object AKManager extends App {
     case Array("list") => show(records)
     case Array("delete", xs) => config.saveToFile(records.filterNot(record => xs.contains(record.alias)))
     case Array("add", alias) => config.saveToFile(add(records, alias))
+    case Array("select", alias) => select(alias)
   }
 
   def show(records: List[Record]): Unit = records match {
     case l if l.isEmpty => println("Non entry found")
     case _ => println(records.mkString("\n"))
+  }
+
+  def select(alias: String): Unit = records.filter(_.alias == alias) match {
+    case record =>
+    case _ => println(s"${alias} not found.")
   }
 
   def add(records: List[Record], alias: String) = {
